@@ -28,11 +28,10 @@
 #=====================================================================
 
 # Host name (or IP address) of MySQL server e.g localhost
-#DBHOST=`hostname`
 DBHOST=localhost
 
 # Backup directory location e.g s3://mysql_backups/server_name
-BACKUPDIR="s3://mysql_backups/$DBHOST"
+BACKUPDIR="s3://mysql_backups/server_name"
 
 # Username to access the MySQL server e.g. dbuser
 USERNAME=`grep user /etc/mysql/debian.cnf | tail -n 1 | cut -d"=" -f2 | awk '{print $1}'`
@@ -65,7 +64,7 @@ MAILADDR="root"
 MDBNAMES="mysql $DBNAMES"
 
 # List of DBNAMES to EXLUCDE if DBNAMES are set to all (must be in " quotes)
-DBEXCLUDE="information_schema mysql"
+DBEXCLUDE="information_schema mysql "
 
 # Include CREATE DATABASE in backup?
 CREATE_DATABASE=yes
@@ -525,7 +524,7 @@ echo ======================================================================
 			else
 				REMW=`expr $W - 5`
 			fi
-		eval $S3CMD del "$BACKUPDIR/weekly/$DB/${DB}_week.$REMW.*" 
+    eval $S3CMD ls "$BACKUPDIR/weekly/$DB/" | grep {$DB}_week.$REMW | awk '{print $4}' | xargs s3cmd del
 		echo
 			dbdump "$DB" "$TMPDIR/${DB}_week.$W.$DATE.sql"
 			compression "$TMPDIR/${DB}_week.$W.$DATE.sql"
@@ -537,7 +536,7 @@ echo ======================================================================
 	else
 		echo Daily Backup of Database \( $DB \)
 		echo Rotating last weeks Backup...
-		eval $S3CMD del "$BACKUPDIR/daily/$DB/*.$DOW.sql.*" 
+    eval $S3CMD ls "$BACKUPDIR/daily/$DB/" | grep .$DOW.sql. | awk '{print $4}' | xargs s3cmd del
 		echo
 			dbdump "$DB" "$TMPDIR/${DB}_$DATE.$DOW.sql"
 			compression "$TMPDIR/${DB}_$DATE.$DOW.sql"
@@ -575,7 +574,7 @@ echo ======================================================================
 			else
 				REMW=`expr $W - 5`
 			fi
-		eval $S3CMD del "$BACKUPDIR/weekly/week.$REMW.*" 
+    eval $S3CMD ls "$BACKUPDIR/weekly/$DB/" | grep week.$REMW | awk '{print $4}' | xargs s3cmd del
 		echo
 			dbdump "$DBNAMES" "$TMPDIR/week.$W.$DATE.sql"
 			compression "$TMPDIR/week.$W.$DATE.sql"
@@ -588,7 +587,7 @@ echo ======================================================================
 		echo Daily Backup of Databases \( $DBNAMES \)
 		echo
 		echo Rotating last weeks Backup...
-		eval $S3CMD del "$BACKUPDIR/daily/*.$DOW.sql.*" 
+    eval $S3CMD ls "$BACKUPDIR/daily/" | grep .$DOW.sql. | awk '{print $4}' | xargs s3cmd del
 		echo
 			dbdump "$DBNAMES" "$TMPDIR/$DATE.$DOW.sql"
 			compression "$TMPDIR/$DATE.$DOW.sql"
