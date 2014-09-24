@@ -75,8 +75,11 @@ SEPDIR=yes
 # Which day do you want weekly backups? (1 to 7 where 1 is Monday)
 DOWEEKLY=6
 
-# Choose Compression type. (gzip or bzip2)
+# Choose Compression type. (gzip, gpg (encrypted) or bzip2)
 COMP=gzip
+
+# If COMP=gpg define a recipient here. You can pick one from gpg --list-keys or generate one using gpg --gen-key. Always use the subkey for encryption
+GPG_RECIPIENT=""
 
 # Compress communications between backup server and MySQL server?
 COMMCOMP=no
@@ -415,6 +418,10 @@ elif [ "$COMP" = "bzip2" ]; then
 	echo Compression information for "$1.bz2"
 	bzip2 -f -v $1 2>&1
 	SUFFIX=".bz2"
+elif [ "$COMP" = "gpg" ]; then
+	echo Compression information for "$1.gpg"
+	gpg -r "$GPG_RECIEPIENT" -e $1 2>&1
+	SUFFIX=".gpg"
 else
 	echo "No compression option set, check advanced settings"
 fi
