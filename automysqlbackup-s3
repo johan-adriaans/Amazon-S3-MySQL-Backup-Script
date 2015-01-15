@@ -607,7 +607,7 @@ echo ======================================================================
 fi
 echo Total disk space used for backup storage..
 echo Size - Location
-echo `s3cmd ls $BACKUPDIR --recursive | awk 'BEGIN {sum=0} {sum+=$3} END {printf("%3.1f", sum/1024/1024); print "MB"}'`
+echo `s3cmd ls $BACKUPDIR/ --recursive | awk 'BEGIN {sum=0} {sum+=$3} END {printf("%3.1f", sum/1024/1024); print "MB"}'`
 echo
 echo ======================================================================
 echo If you find AutoMySQLBackup valuable please make a donation at
