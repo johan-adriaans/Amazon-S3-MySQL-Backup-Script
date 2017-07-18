@@ -64,7 +64,7 @@ MAILADDR="root"
 MDBNAMES="mysql $DBNAMES"
 
 # List of DBNAMES to EXLUCDE if DBNAMES are set to all (must be in " quotes)
-DBEXCLUDE="information_schema mysql "
+DBEXCLUDE="information_schema mysql"
 
 # Include CREATE DATABASE in backup?
 CREATE_DATABASE=yes
@@ -344,17 +344,17 @@ SOCKET=
 PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/mysql/bin
 S3CMD=/usr/bin/s3cmd
 TMPDIR=/tmp
-DATE=`date +%Y-%m-%d_%Hh%Mm`                    # Datestamp e.g 2002-09-21
-DOW=`date +%A`                                  # Day of the week e.g. Monday
-DNOW=`date +%u`                                  # Day number of the week 1 to 7 where 1 represents Monday
-DOM=`date +%d`                                   # Date of the Month e.g. 27
-M=`date +%B`                                    # Month e.g January
-W=`date +%V`                                    # Week Number e.g 37
-VER=S3-0.1                                      # Version Number
-LOGFILE=$TMPDIR/$DBHOST-`date +%N`.log          # Logfile Name
+DATE=`date +%Y-%m-%d_%Hh%Mm`            # Datestamp e.g 2017-07-18
+DOW=`date +%A`                          # Day of the week e.g. Monday
+DNOW=`date +%u`                         # Day number of the week 1 to 7 where 1 represents Monday
+DOM=`date +%d`                          # Date of the Month e.g. 27
+M=`date +%B`                            # Month e.g January
+W=`date +%V`                            # Week Number e.g 37
+VER=S3-0.1                              # Version Number
+LOGFILE=$TMPDIR/$DBHOST-`date +%N`.log  # Logfile Name
 LOGERR=$TMPDIR/ERRORS_$DBHOST-`date +%N`.log    # Logfile Name
-OPT="--quote-names"                              # OPT string for use with mysqldump ( see man mysqldump )
 BACKUPFILES=""
+OPT="--quote-names --events"      # OPT string for use with mysqldump ( see man mysqldump )
 
 # Add --compress mysqldump option to $OPT
 if [ "$COMMCOMP" = "yes" ];
@@ -363,8 +363,7 @@ if [ "$COMMCOMP" = "yes" ];
   fi
 
 # Add --compress mysqldump option to $OPT
-if [ "$MAX_ALLOWED_PACKET" ];
-then
+if [ "$MAX_ALLOWED_PACKET" ]; then
   OPT="$OPT --max_allowed_packet=$MAX_ALLOWED_PACKET"
 fi
 
@@ -420,7 +419,7 @@ elif [ "$COMP" = "bzip2" ]; then
   SUFFIX=".bz2"
 elif [ "$COMP" = "gpg" ]; then
   echo Compression information for "$1.gpg"
-  gpg -r "$GPG_RECIEPIENT" -e $1 2>&1
+  gpg -r "$GPG_RECIPIENT" -e $1 2>&1 && rm $1
   SUFFIX=".gpg"
 else
   echo "No compression option set, check advanced settings"
@@ -508,7 +507,7 @@ echo ======================================================================
 
       echo Monthly Backup of $MDB...
         dbdump "$MDB" "$TMPDIR/${MDB}_$DATE.$M.$MDB.sql"
-         compression "$TMPDIR/${MDB}_$DATE.$M.$MDB.sql"
+        compression "$TMPDIR/${MDB}_$DATE.$M.$MDB.sql"
         movetos3 "$TMPDIR/${MDB}_$DATE.$M.$MDB.sql$SUFFIX" "$BACKUPDIR/monthly/$MDB/${MDB}_$DATE.$M.$MDB.sql$SUFFIX"
         BACKUPFILES="$BACKUPFILES $BACKUPDIR/monthly/$MDB/${MDB}_$DATE.$M.$MDB.sql$SUFFIX"
       echo ----------------------------------------------------------------------
@@ -531,11 +530,11 @@ echo ======================================================================
       else
         REMW=`expr $W - 5`
       fi
-    eval $S3CMD ls "$BACKUPDIR/weekly/$DB/" | grep {$DB}_week.$REMW | awk '{print $4}' | xargs s3cmd del
+    eval $S3CMD del "$BACKUPDIR/weekly/$DB/${DB}_week.$REMW.*"
     echo
       dbdump "$DB" "$TMPDIR/${DB}_week.$W.$DATE.sql"
       compression "$TMPDIR/${DB}_week.$W.$DATE.sql"
-      movetos3 "$TMPDIR/${DB}_week.$W.$DATE.sql${DB}_$DATE.$M.$MDB.sql$SUFFIX" "$BACKUPDIR/weekly/$DB/${DB}_week.$W.$DATE.sql$SUFFIX"
+      movetos3 "$TMPDIR/${DB}_week.$W.$DATE.sql$SUFFIX" "$BACKUPDIR/weekly/$DB/${DB}_week.$W.$DATE.sql$SUFFIX"
       BACKUPFILES="$BACKUPFILES $BACKUPDIR/weekly/$DB/${DB}_week.$W.$DATE.sql$SUFFIX"
     echo ----------------------------------------------------------------------
 
@@ -543,7 +542,7 @@ echo ======================================================================
   else
     echo Daily Backup of Database \( $DB \)
     echo Rotating last weeks Backup...
-    eval $S3CMD ls "$BACKUPDIR/daily/$DB/" | grep .$DOW.sql. | awk '{print $4}' | xargs s3cmd del
+    eval $S3CMD del "$BACKUPDIR/daily/$DB/*.$DOW.sql.*"
     echo
       dbdump "$DB" "$TMPDIR/${DB}_$DATE.$DOW.sql"
       compression "$TMPDIR/${DB}_$DATE.$DOW.sql"
@@ -581,7 +580,7 @@ echo ======================================================================
       else
         REMW=`expr $W - 5`
       fi
-    eval $S3CMD ls "$BACKUPDIR/weekly/$DB/" | grep week.$REMW | awk '{print $4}' | xargs s3cmd del
+    eval $S3CMD del "$BACKUPDIR/weekly/week.$REMW.*"
     echo
       dbdump "$DBNAMES" "$TMPDIR/week.$W.$DATE.sql"
       compression "$TMPDIR/week.$W.$DATE.sql"
@@ -594,7 +593,7 @@ echo ======================================================================
     echo Daily Backup of Databases \( $DBNAMES \)
     echo
     echo Rotating last weeks Backup...
-    eval $S3CMD ls "$BACKUPDIR/daily/" | grep .$DOW.sql. | awk '{print $4}' | xargs s3cmd del
+    eval $S3CMD del "$BACKUPDIR/daily/*.$DOW.sql.*"
     echo
       dbdump "$DBNAMES" "$TMPDIR/$DATE.$DOW.sql"
       compression "$TMPDIR/$DATE.$DOW.sql"
@@ -607,7 +606,7 @@ echo ======================================================================
 fi
 echo Total disk space used for backup storage..
 echo Size - Location
-echo `s3cmd ls $BACKUPDIR/ --recursive | awk 'BEGIN {sum=0} {sum+=$3} END {printf("%3.1f", sum/1024/1024); print "MB"}'`
+echo `s3cmd ls $BACKUPDIR --recursive | awk 'BEGIN {sum=0} {sum+=$3} END {printf("%3.1f", sum/1024/1024); print "MB"}'`
 echo
 echo ======================================================================
 echo If you find AutoMySQLBackup valuable please make a donation at
